@@ -5,6 +5,10 @@ let { RegisterValidator, validationResult } = require('../utils/validatorHandler
 let { CheckLogin } = require('../utils/authHandler')
 let jwt = require('jsonwebtoken')
 let fs = require('fs')
+let path = require('path')
+
+// Load RSA private key for signing
+const privateKey = fs.readFileSync(path.join(__dirname, '../keys/private.pem'), 'utf8');
 
 router.post('/register', RegisterValidator, validationResult, async function (req, res, next) {
     try {
@@ -36,7 +40,7 @@ router.post('/login', async function (req, res, next) {
         }
         let token = jwt.sign({
             id:result._id
-        },'secretKey',{
+        }, privateKey, {
             expiresIn:'1d',
             algorithm:'RS256'
         })
@@ -60,6 +64,28 @@ router.post('/logout', CheckLogin, function (req, res, next) {
         httpOnly: true
     })
     res.send("da logout ")
+})
+
+router.post('/changepassword', CheckLogin, async function (req, res, next) {
+    try {
+        let { oldpassword, newpassword } = req.body;
+        
+        // Validate input
+        if (!oldpassword || !newpassword) {
+            return res.status(400).send({ message: "Vui lòng cung cấp mật khẩu cũ và mật khẩu mới" });
+        }
+
+        let user = req.user;
+        let result = await userController.ChangePassword(user, oldpassword, newpassword);
+        
+        if (result.success) {
+            res.send({ message: result.message });
+        } else {
+            res.status(400).send({ message: result.message });
+        }
+    } catch (err) {
+        res.status(400).send({ message: err.message });
+    }
 })
 
 module.exports = router;

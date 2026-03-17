@@ -48,5 +48,33 @@ module.exports = {
         } catch (error) {
             return false;
         }
+    },
+    ChangePassword: async function (user, oldPassword, newPassword) {
+        // Kiểm tra mật khẩu cũ
+        if (!bcrypt.compareSync(oldPassword, user.password)) {
+            return { success: false, message: "Mật khẩu cũ không đúng" };
+        }
+
+        // Validate mật khẩu mới
+        if (!newPassword || newPassword.trim().length === 0) {
+            return { success: false, message: "Mật khẩu mới không được để trống" };
+        }
+
+        if (newPassword.length < 6) {
+            return { success: false, message: "Mật khẩu mới phải có ít nhất 6 ký tự" };
+        }
+
+        if (newPassword === oldPassword) {
+            return { success: false, message: "Mật khẩu mới không được trùng với mật khẩu cũ" };
+        }
+
+        // Cập nhật mật khẩu
+        try {
+            user.password = newPassword;
+            await user.save();
+            return { success: true, message: "Thay đổi mật khẩu thành công" };
+        } catch (error) {
+            return { success: false, message: error.message };
+        }
     }
 }
